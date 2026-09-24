@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 IoT Sensor Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Fonts for modern typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Top Header -->
+    <header class="header">
+      <div class="header-left">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" width="26" height="26" stroke="currentColor" stroke-width="2" fill="none">
+            <rect x="2" y="2" width="20" height="20" rx="4" />
+            <path d="M7 2v20M17 2v20M2 12h20M2 7h20M2 17h20" opacity="0.3"/>
+            <circle cx="12" cy="12" r="3" fill="currentColor"/>
+          </svg>
+        </div>
+        <div>
+          <h1>ESP32 SENSORS</h1>
+          <p class="subtitle">HC-SR04 Ultrasonic &amp; DHT11 Environment Monitor</p>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Connection Status Indicator -->
+        <div id="connectionStatus" class="status-badge connecting">
+          <span class="pulse-dot"></span>
+          <span id="statusText">Connecting...</span>
+        </div>
+
+        <!-- IP Settings Toggle -->
+        <button id="configBtn" class="btn-icon" title="Server Settings">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Configuration Panel (Collapsible / Modal) -->
+    <div id="configPanel" class="config-panel hidden">
+      <div class="config-content">
+        <h3>Connection Settings</h3>
+        <p>If accessing from a separate browser or computer, set your ESP32's local IP address below:</p>
+        <div class="input-group">
+          <label for="espIpInput">ESP32 IP / Host:</label>
+          <div class="input-wrapper">
+            <span class="url-prefix">http://</span>
+            <input type="text" id="espIpInput" placeholder="192.168.1.100" />
+            <button id="saveIpBtn" class="btn btn-primary">Connect</button>
+          </div>
+        </div>
+        <div class="config-actions">
+          <button id="testDemoBtn" class="btn btn-secondary">Simulate Demo Data</button>
+          <span class="demo-notice" id="demoNotice"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Metric Cards Grid -->
+    <main class="metrics-grid">
+      
+      <!-- Temperature Card -->
+      <section class="card card-temp" id="tempCard">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="icon-circle icon-temp">
+              <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+                <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"></path>
+              </svg>
+            </div>
+            <span>Temperature</span>
+          </div>
+          <span class="sensor-badge">DHT11 (Pin 4)</span>
+        </div>
+
+        <div class="card-body">
+          <div class="value-display">
+            <span class="main-value" id="tempValue">--</span>
+            <span class="unit" id="tempUnit">°C</span>
+          </div>
+
+          <div class="bar-container">
+            <div class="bar-fill bar-temp" id="tempBar" style="width: 0%;"></div>
+          </div>
+
+          <div class="stats-footer">
+            <div class="stat-item">
+              <span class="stat-label">Min</span>
+              <span class="stat-val" id="tempMin">--</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Max</span>
+              <span class="stat-val" id="tempMax">--</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Status</span>
+              <span class="stat-val" id="tempStatus">Normal</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Humidity Card -->
+      <section class="card card-humidity" id="humidityCard">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="icon-circle icon-humidity">
+              <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path>
+              </svg>
+            </div>
+            <span>Humidity</span>
+          </div>
+          <span class="sensor-badge">DHT11 (Pin 4)</span>
+        </div>
+
+        <div class="card-body">
+          <div class="value-display">
+            <span class="main-value" id="humidityValue">--</span>
+            <span class="unit">%</span>
+          </div>
+
+          <div class="bar-container">
+            <div class="bar-fill bar-humidity" id="humidityBar" style="width: 0%;"></div>
+          </div>
+
+          <div class="stats-footer">
+            <div class="stat-item">
+              <span class="stat-label">Comfort</span>
+              <span class="stat-val" id="comfortLevel">--</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Dew Point</span>
+              <span class="stat-val" id="dewPoint">--</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Target</span>
+              <span class="stat-val">30 - 60%</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ultrasonic Distance Card -->
+      <section class="card card-distance" id="distanceCard">
+        <div class="card-header">
+          <div class="card-title">
+            <div class="icon-circle icon-distance">
+              <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+                <path d="M2 12h20M7 8l-5 4 5 4M17 8l5 4-5 4"/>
+              </svg>
+            </div>
+            <span>Distance</span>
+          </div>
+          <span class="sensor-badge">HC-SR04 (Trig: 5, Echo: 18)</span>
+        </div>
+
+        <div class="card-body">
+          <div class="value-display">
+            <span class="main-value" id="distanceValue">--</span>
+            <span class="unit">cm</span>
+          </div>
+
+          <!-- Proximity Visual Bar -->
+          <div class="bar-container">
+            <div class="bar-fill bar-distance" id="distanceBar" style="width: 0%;"></div>
+          </div>
+
+          <!-- Radar/Alert Level -->
+          <div class="proximity-indicator" id="proximityIndicator">
+            <span class="proximity-tag" id="proximityTag">Waiting for signal</span>
+          </div>
+
+          <div class="stats-footer">
+            <div class="stat-item">
+              <span class="stat-label">Inches</span>
+              <span class="stat-val" id="distanceInches">-- in</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Range</span>
+              <span class="stat-val">2 - 400 cm</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Obstacle Alert</span>
+              <span class="stat-val" id="proximityAlert">None</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Real-time Chart Section -->
+    <section class="chart-section">
+      <div class="chart-header">
+        <div class="chart-title">
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <h3>Live Telemetry History</h3>
+        </div>
+        <div class="chart-controls">
+          <button class="filter-btn active" data-channel="distance">Distance</button>
+          <button class="filter-btn" data-channel="temperature">Temperature</button>
+          <button class="filter-btn" data-channel="humidity">Humidity</button>
+        </div>
+      </div>
+      
+      <div class="canvas-wrapper">
+        <canvas id="liveChart" height="200"></canvas>
+      </div>
+    </section>
+
+    <!-- Footer with polling interval and last updated timestamp -->
+    <footer class="footer">
+      <div class="footer-left">
+        <span>Last update: <strong id="lastUpdated">Never</strong></span>
+        <span class="divider">|</span>
+        <span>Poll interval: 
+          <select id="pollIntervalSelect" class="select-interval">
+            <option value="1000">1.0s</option>
+            <option value="2000" selected>2.0s (Recommended)</option>
+            <option value="5000">5.0s</option>
+          </select>
+        </span>
+      </div>
+      <div class="footer-right">
+        <button id="manualRefreshBtn" class="btn btn-sm">Refresh Now</button>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
